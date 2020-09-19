@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>ShellCoder</title>
+</head>
+
+<body>
+
+    <input type="radio" name="selectbits" value="16">16
+    <input type="radio" name="selectbits" value="32">32
+    <input type="radio" name="selectbits" value="64" checked>64
+    <br>
+    <textarea id=code style="height: 200px;">inc ax</textarea>
+    <br>
+    <button id=asm>Assemble</button>
+    <button id=dasm>Disassemble</button>
+
+    <pre id=output style="background-color: lightgray;"></pre>
+    <script>
+        function go(u) {
+            let bits = 0;
+            for (let x of document.getElementsByName('selectbits'))
+                if (x.checked)
+                    bits = x.value;
+
+            fetch(u, {
+                method: "POST",
+                body: JSON.stringify({
+                    bits: bits,
+                    code: document.getElementById('code').value
+                })
+            })
+                .then(r => r.text())
+                .then(t => document.getElementById('output').innerText = t);
+        }
+        document.getElementById('asm').addEventListener('click', () => go('/asm'));
+        document.getElementById('dasm').addEventListener('click', () => go('/dasm'));
+    </script>
+</body>
+
+</html>
