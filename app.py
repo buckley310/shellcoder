@@ -3,7 +3,7 @@
 import os
 import subprocess
 import json
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from flask import Flask, request, send_file
 
 app = Flask(__name__)
@@ -30,9 +30,11 @@ def ndisasm():
         f.write(bytes.fromhex(hexonly))
         f.flush()
 
-        res = b''
-        res += subprocess.check_output(('ndisasm', f.name, '-b', bits),
-                                       stderr=subprocess.STDOUT)
+        res = subprocess.run(
+            ('ndisasm', f.name, '-b', bits),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        ).stdout
 
         res += b'\n'
         for x in range(len(hexonly)//2):
@@ -46,22 +48,28 @@ def nasm():
     j = json.loads(request.data.decode())
     bits = str(int(j['bits']))
 
-    with NamedTemporaryFile(mode='w') as fa:
-        with NamedTemporaryFile(mode='wb+') as fb:
-            fa.write(f'BITS {bits}\n')
-            fa.write(j['code'])
-            fa.flush()
+    with NamedTemporaryFile(mode='w') as f:
+        with TemporaryDirectory() as d:
+            f.write(f'BITS {bits}\n')
+            f.write(j['code'])
+            f.flush()
 
-            fb.flush()
-            res = b''
-            res += subprocess.check_output(['nasm', fa.name, '-o', fb.name],
-                                           stderr=subprocess.STDOUT)
+            res = subprocess.run(
+                ['nasm', f.name, '-o', d+'/a'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT
+            ).stdout
 
-            res += subprocess.check_output(['ndisasm', fb.name, '-b', bits],
-                                           stderr=subprocess.STDOUT)
+            res += subprocess.run(
+                ['ndisasm', d+'/a', '-b', bits],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT
+            ).stdout
 
-            hexcode = ''.join(['\\x'+('0'+hex(c)[2:])[-2:] for c in fb.read()])
-            res += b'\n' + hexcode.encode()
+            if os.path.exists(d+'/a'):
+                with open(d+'/a', 'rb') as f2:
+                    hexchars = ['\\x'+('0'+hex(c)[2:])[-2:] for c in f2.read()]
+                res += b'\n' + ''.join(hexchars).encode()
             return res
 
 
