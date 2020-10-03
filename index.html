@@ -4,10 +4,15 @@
 <head>
     <meta charset="utf-8">
     <title>ShellCoder</title>
+    <style>
+        #grid>pre {
+            padding: 1em;
+            background-color: lightgray;
+        }
+    </style>
 </head>
 
 <body>
-
     <input type="radio" name="selectbits" value="16">16
     <input type="radio" name="selectbits" value="32">32
     <input type="radio" name="selectbits" value="64" checked>64
@@ -16,9 +21,17 @@
     <br>
     <button id=asm>Assemble</button>
     <button id=dasm>Disassemble</button>
+    <br>
 
-    <pre id=output style="background-color: lightgray;"></pre>
+    <div id=grid></div>
+
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
     <script>
+        let msnry;
+        addEventListener('load', function () {
+            msnry = new Masonry(document.querySelector('#grid'), { gutter: 10 });
+        });
+
         function go(u) {
             let bits = 0;
             for (let x of document.getElementsByName('selectbits'))
@@ -33,8 +46,17 @@
                 })
             })
                 .then(r => r.text())
-                .then(t => document.getElementById('output').innerText = t);
+                .then(function (t) {
+                    let elem = document.createElement('pre');
+                    elem.textContent = t;
+                    document.querySelector('#grid').prepend(elem);
+                    msnry.prepended(elem);
+                    let a = Array.from(document.querySelector('#grid').childNodes);
+                    while (a.length > 10)
+                        msnry.remove(a.pop());
+                });
         }
+
         document.getElementById('asm').addEventListener('click', () => go('/asm'));
         document.getElementById('dasm').addEventListener('click', () => go('/dasm'));
     </script>
