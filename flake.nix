@@ -1,8 +1,6 @@
 {
-  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
-
   outputs = { self, nixpkgs }: {
-    defaultApp."x86_64-linux" =
+    packages."x86_64-linux".default =
       with (import nixpkgs { system = "x86_64-linux"; });
       let
         pythonWithPkgs = python3.withPackages (ps: [ ps.flask ]);
